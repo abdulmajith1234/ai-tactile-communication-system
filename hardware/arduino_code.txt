@@ -1,0 +1,71 @@
+#include <Servo.h>
+
+// Motor pins (first 4 Braille dots)
+const int motorPins[4] = {3, 4, 5, 6};
+
+// Servo pins (dot 5 and 6)
+const int servoPin1 = 9;
+const int servoPin2 = 10;
+
+Servo servo1, servo2;
+String incomingData = "";
+
+void setup() {
+  Serial.begin(9600);
+
+  for (int i = 0; i < 4; i++) {
+    pinMode(motorPins[i], OUTPUT);
+    digitalWrite(motorPins[i], LOW);
+  }
+
+  servo1.attach(servoPin1);
+  servo2.attach(servoPin2);
+  servo1.write(90);
+  servo2.write(90);
+
+  Serial.println("✅ Arduino Ready: Waiting for Braille input...");
+}
+
+void loop() {
+  if (Serial.available() > 0) {
+    incomingData = Serial.readStringUntil('\n');
+    incomingData.trim();  // Remove \r or whitespace
+
+    Serial.print("📥 Received: ");
+    Serial.println(incomingData);
+
+    if (incomingData.length() == 6) {
+      displayBrailleCharacter(incomingData);  // Call the display function
+    } else {
+      Serial.println("❌ Invalid input (should be 6 digits: 0 or 1).");
+    }
+  }
+}
+
+void displayBrailleCharacter(String braille) {
+  // Activate motors for dot 1 to 4
+  for (int i = 0; i < 4; i++) {
+    digitalWrite(motorPins[i], braille.charAt(i) == '1' ? HIGH : LOW);
+  }
+
+  // Servo dot 5
+  servo1.write(braille.charAt(4) == '1' ? 0 : 90);
+
+  // Servo dot 6
+  servo2.write(braille.charAt(5) == '1' ? 180 : 90);
+
+  // ✅ Hold the pattern for 3 seconds
+  delay(3000);
+
+  // Reset everything
+  for (int i = 0; i < 4; i++) {
+    digitalWrite(motorPins[i], LOW);
+  }
+  servo1.write(90);
+  servo2.write(90);
+
+  Serial.println("✅ Pattern displayed.\n");
+
+  // Optional: short pause before accepting next char (avoid collision)
+  delay(2000);
+}
